@@ -10,6 +10,7 @@ fun Application.mainRouter(db:Database){
         route("api/"){
             authenticationRouter(db)
             notesRouter(db)
+            testApi()
         }
     }
 }

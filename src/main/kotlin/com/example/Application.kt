@@ -22,6 +22,8 @@ fun Application.module() {
     mainRouter(db)
 //    notesRouter(db)
 
+}
+//Ktorm GitHub Documentation @Todo https://github.com/kotlin-orm/ktorm
 
 //    val scheduler = Scheduler()
 //    scheduler.scheduleJob(
@@ -34,6 +36,3 @@ fun Application.module() {
 //        jobClass = TestScheduler::class.java
 //    )
 //    scheduler.start()
-
-}
-//Ktorm GitHub Documentation @Todo https://github.com/kotlin-orm/ktorm
