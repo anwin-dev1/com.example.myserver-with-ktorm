@@ -1,9 +1,7 @@
 package com.example
 
 import com.example.db.DatabaseFactory
-import com.example.routing.authenticationRouter
 import com.example.routing.mainRouter
-import com.example.routing.notesRouter
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*

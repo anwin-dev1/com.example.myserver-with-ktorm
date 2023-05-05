@@ -105,7 +105,7 @@ fun Route.signinAuth(db: Database) {
             val user = db.from(Users).select()
                 .where { Users.email_id eq email }
                 .map {
-                    val id = it[Users.userId]!!
+                    val id = it[Users.user_id]!!
                     val emailID = it[Users.email_id]!!
                     val password = it[Users.password]!!
                     LoginDetailsModel(id, userName, emailID, password)

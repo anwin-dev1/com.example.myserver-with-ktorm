@@ -7,6 +7,7 @@ import org.ktorm.schema.varchar
 object NoteTable:Table<Nothing>("note") {
     val note_id = int("note_id").primaryKey()
     val user_id = int("user_id")
+    val title = varchar("title")
     val notes = varchar("notes")
     val created_on = varchar("created_on")
     val updated_on = varchar("update_on")

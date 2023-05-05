@@ -1,14 +1,14 @@
-package com.example.routing
+package com.example.routing.Route
 
 import com.example.model.ResponseData
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import kotlinx.serialization.json.JsonElement
+import io.ktor.server.routing.Route
 import kotlinx.serialization.json.JsonObject
 
+import io.ktor.server.routing.*
 fun Route.testApi() {
 
     route("testJsonObject") {

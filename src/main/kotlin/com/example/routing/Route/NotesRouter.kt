@@ -1,4 +1,4 @@
-package com.example.routing
+package com.example.routing.Route
 
 
 import com.example.model.InsertNoteMode
@@ -10,8 +10,12 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
+import io.ktor.server.routing.Route
 
 fun Route.notesRouter(db: Database) {
 
@@ -21,7 +25,7 @@ fun Route.notesRouter(db: Database) {
                 val noteId = call.request.queryParameters["note_id"]?.toInt() ?: -1
                 val userId = call.request.queryParameters["user_id"]?.toInt() ?: -1
 
-                val responseNote = db.from(NoteTable)
+                val returnResponse = db.from(NoteTable)
                     .select()
                     .where((NoteTable.user_id eq userId) and (NoteTable.note_id eq noteId))
                     .map {
@@ -30,8 +34,8 @@ fun Route.notesRouter(db: Database) {
                         ResponseNote(noteId, notes)
                     }.firstOrNull()
 
-                if (responseNote != null) {
-                    call.respond(HttpStatusCode.OK, ResponseData(true, message = "success", data = responseNote))
+                if (returnResponse != null) {
+                    call.respond(HttpStatusCode.OK, ResponseData(true, message = "success", data = returnResponse))
                     return@get
                 } else {
                     call.respond(
@@ -57,6 +61,7 @@ fun Route.notesRouter(db: Database) {
                     return@post
                 } else {
                     val value = db.insert(NoteTable) {
+                        set(it.title, data.title)
                         set(it.notes, data.note)
                         set(it.user_id, user_id)
                     }
@@ -107,6 +112,7 @@ fun Route.notesRouter(db: Database) {
                 if (noteId != -1 && userId != -1) {
 
                     val action = db.update(NoteTable) {
+                        set(it.title, noteData?.title)
                         set(it.notes, noteData?.note)
                         where {
                             (it.user_id eq userId) and (it.note_id eq noteId)
@@ -132,26 +138,27 @@ fun Route.notesRouter(db: Database) {
 
         get("getAllNotes") {
             try {
-                val userId = call.request.queryParameters["user_id"]?.toInt() ?: -1
-                val notesList = ArrayList<String>()/**/
+                val user_id = call.request.queryParameters["user_id"]?.toInt() ?: -1
+                val notesList = ArrayList<JsonObject>()
 
                 val notes = db.from(NoteTable)
                     .select()
                     .orderBy(NoteTable.note_id.desc())
-                    .where { NoteTable.user_id eq userId }
+                    .where { NoteTable.user_id eq user_id }
 
-                if (notes == null) {
-                    call.respond(HttpStatusCode.NotFound, ResponseData(false, "No notes found", null))
-                    return@get
-                } else {
-                    notes.forEach {
-                        val noteDetails = it[NoteTable.notes]
-//                        notesList.add(InsertNoteMode(noteDetails!!))
-                        notesList.add(noteDetails.toString())
+                notes.forEach {
+                    val noteId = it[NoteTable.note_id]
+                    val title = it[NoteTable.title]
+                    val note = it[NoteTable.notes]
+                    val jsonObject = buildJsonObject {
+                        put("id", noteId)
+                        put("title", title)
+                        put("note",note)
                     }
-                    call.respond(HttpStatusCode.OK, ResponseData(true, "Success",notesList))
-                    return@get
+                    notesList.add(jsonObject)
                 }
+                call.respond(HttpStatusCode.OK, ResponseData(true, "Success", notesList))
+                return@get
 
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.OK, ResponseData(false, e.message, ""))
