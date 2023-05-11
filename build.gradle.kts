@@ -40,6 +40,9 @@ dependencies {
     implementation("org.quartz-scheduler:quartz:2.3.2")
     implementation("org.slf4j:slf4j-simple:1.7.32")
 
+    implementation("io.ktor:ktor-server-auth:$ktor_version")
+    implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
 
+    implementation("com.google.code.gson:gson:2.8.9")
 
 }

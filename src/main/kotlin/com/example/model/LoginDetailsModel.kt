@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 import org.mindrot.jbcrypt.BCrypt
 
 @Serializable
-data class LoginDetailsModel(val id: Int? = 0,val userName: String?="",val email:String, val password: String) {
+data class LoginDetailsModel(val id: Int? = 0,val email:String, val password: String) {
 
     fun hashPassword(): String {
         return BCrypt.hashpw(password, BCrypt.gensalt())

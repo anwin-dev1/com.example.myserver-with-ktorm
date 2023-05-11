@@ -2,9 +2,9 @@ package com.example.routing.Route
 
 import com.example.model.ResponseData
 import com.example.model.UserAccount
-import com.example.table.NoteTable
 import com.example.table.Users
 import io.ktor.http.*
+import io.ktor.http.content.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -17,6 +17,43 @@ import org.ktorm.dsl.*
 
 fun Route.userAccount(db: Database) {
     route("userAccount") {
+
+        post("uploadProfilePic"){
+            try{
+                val multipart = call.receiveMultipart()
+                var fileName: String? = null
+                var fileBytes: ByteArray? = null
+
+                if(multipart != null){
+                    call.respond(HttpStatusCode.OK, ResponseData(true, message = multipart.toString(), data = ""))
+                    return@post
+
+                }else{
+                    call.respond(HttpStatusCode.OK, ResponseData(false, message = multipart.toString(), data = ""))
+                    return@post
+                }
+
+                multipart.forEachPart { part ->
+                    when (part) {
+                        is PartData.FormItem -> {
+                            // Handle form fields here
+                        }
+                        is PartData.FileItem -> {
+                            fileName = part.originalFileName
+                            fileBytes = part.streamProvider().readBytes()
+                        }
+
+                        else -> {}
+                    }
+                    part.dispose()
+                }
+
+            }catch (e:Exception){
+                call.respond(HttpStatusCode.InternalServerError, ResponseData(false, message = "Internal server error", data = e.localizedMessage))
+                return@post
+            }
+        }
+
         get {
             try {
                 val userId = call.request.queryParameters["user_id"]?.toInt() ?: -1
@@ -24,14 +61,15 @@ fun Route.userAccount(db: Database) {
                     val returnResponse = db.from(Users)
                         .select()
                         .where((Users.user_id eq userId)).map {
-                            val user_id = it[Users.user_id]!!
-                            val full_name = it[Users.full_name]!!
-                            val first_name = it[Users.first_name]!!
-                            val last_name = it[Users.last_name]!!
-                            val mobile_number = it[Users.mobile_number]!!
-                            val email_id = it[Users.email_id]!!
+                            val user_id = it[Users.user_id]
+                            val full_name = it[Users.full_name]
+                            val first_name = it[Users.first_name]
+                            val last_name = it[Users.last_name]
+                            val mobile_number = it[Users.mobile_number]
+                            val email_id = it[Users.email_id]
                             val dob = it[Users.dob]!!
-                            UserAccount(user_id,full_name,dob,first_name,last_name,mobile_number,email_id)
+                            val gender = it[Users.gender]
+                            UserAccount(user_id = user_id,full_name= full_name,dob = dob,first_name = first_name,last_name = last_name,mobile_number = mobile_number,email_id = email_id, gender = gender)
                         }.firstOrNull()
 
                     if (returnResponse != null) {
@@ -46,7 +84,7 @@ fun Route.userAccount(db: Database) {
                     return@get
                 }
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.InternalServerError, ResponseData(false, message = "Internal server error", data = null))
+                call.respond(HttpStatusCode.InternalServerError, ResponseData(false, message = "Internal server error", data = e.localizedMessage))
                 return@get
             }
         }
@@ -97,7 +135,6 @@ fun Route.userAccount(db: Database) {
                 val full_name = updatingDetails?.get("full_name")?.jsonPrimitive?.contentOrNull
                 val firstName = updatingDetails?.get("first_name")?.jsonPrimitive?.contentOrNull
                 val lastName = updatingDetails?.get("last_name")?.jsonPrimitive?.contentOrNull
-                val username = updatingDetails?.get("user_name")?.jsonPrimitive?.contentOrNull
                 val mobileNumber = updatingDetails?.get("mobile_number")?.jsonPrimitive?.contentOrNull
                 val emailId = updatingDetails?.get("email_id")?.jsonPrimitive?.contentOrNull
                 val gender = updatingDetails?.get("gender")?.jsonPrimitive?.contentOrNull
@@ -131,17 +168,6 @@ fun Route.userAccount(db: Database) {
                             updatingDetails.containsKey("last_name") -> {
                                 val action = db.update(Users) {
                                     set(it.last_name, lastName)
-                                    where {
-                                        (it.user_id eq userId)
-                                    }
-                                }
-                                actionFun(call, action)
-                                return@put
-                            }
-
-                            updatingDetails.containsKey("user_name") -> {
-                                val action = db.update(Users) {
-                                    set(it.user_name, username)
                                     where {
                                         (it.user_id eq userId)
                                     }

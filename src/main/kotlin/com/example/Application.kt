@@ -4,6 +4,8 @@ import com.example.db.DatabaseFactory
 import com.example.routing.mainRouter
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -16,9 +18,11 @@ fun Application.module() {
     install(ContentNegotiation) {
         json()
     }
+    install(Authentication){
+        jwt {}
+    }
     val db = DatabaseFactory.init()
     mainRouter(db)
-//    notesRouter(db)
 
 }
 //Ktorm GitHub Documentation @Todo https://github.com/kotlin-orm/ktorm

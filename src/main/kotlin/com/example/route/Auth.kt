@@ -3,23 +3,25 @@ package com.example.route
 import com.example.model.LoginDetailsModel
 import com.example.model.ResponseData
 import com.example.table.Users
+import com.example.utils.TokenManager
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonObject
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
 import org.mindrot.jbcrypt.BCrypt
 
-fun Route.signUpAuth(db: Database) {
+fun Route.signUpAuth(db: Database, tokenManager: TokenManager) {
     post("signup") {
         try {
             val loginDataReceived = call.receive<LoginDetailsModel>()
 
-            val userName = loginDataReceived.userName?.lowercase()
-            val password = loginDataReceived.hashPassword()
             val email = loginDataReceived.email.lowercase()
+            val password = loginDataReceived.hashPassword()
 
             if (!loginDataReceived.isEmailPatternMatch()) {
                 call.respond(
@@ -37,14 +39,14 @@ fun Route.signUpAuth(db: Database) {
                 return@post
             }
 
-            //check if username already exists
-            val userNameExist = db.from(Users)
+            //check if email already exists
+            val userEmailExist = db.from(Users)
                 .select()
                 .where { Users.email_id eq email }
-                .map { it[Users.email_id] }
+                .map { it[Users.email_id]  }
                 .firstOrNull()
 
-            if (userNameExist != null) {
+            if (userEmailExist != null) {
                 call.respond(
                     HttpStatusCode.OK,
                     ResponseData(
@@ -54,33 +56,43 @@ fun Route.signUpAuth(db: Database) {
                     )
                 )
                 return@post
-            }
-
-            val result = db.insert(Users) {
-                set(it.email_id, email)
-                set(it.password, password)
-            }
-            if (result == 1) {
-                call.respond(HttpStatusCode.OK, ResponseData(true, "Inserted", data = loginDataReceived))
-            } else {
-                call.respond(HttpStatusCode.OK, ResponseData(true, "Some Issue in DB", data = "Error"))
+            }else{
+                val result = db.insert(Users) {
+                    set(it.email_id, email)
+                    set(it.password, password)
+                }
+                if (result == 1) {
+                    val response = JsonObject(
+                        mapOf(
+                            "user_id" to JsonPrimitive(0),
+                            "email_id" to JsonPrimitive(""),
+                            "token" to JsonPrimitive(""),
+                        )
+                    )
+                    call.respond(HttpStatusCode.OK, ResponseData(true, "Inserted", data = response))
+                } else {
+                    call.respond(HttpStatusCode.OK, ResponseData(true, "Some Issue in DB", data = "Error"))
+                }
             }
         } catch (e: Exception) {
             call.respond(HttpStatusCode.OK, ResponseData(false, e.message, data = "Exception"))
         }
     }
 }
+fun Route.  signinAuth(db: Database, tokenManager: TokenManager) {
 
-fun Route.signinAuth(db: Database) {
+    post("signinwithmobile"){
+
+    }
+
 
     post("signin") {
 
         try {
             val loginDataReceived = call.receive<LoginDetailsModel>()
 
-            val userName = loginDataReceived.userName?.lowercase()
-            val password = loginDataReceived.password//.hashPassword()
             val email = loginDataReceived.email.lowercase()
+            val password = loginDataReceived.password//.hashPassword()
 
             if (!loginDataReceived.isEmailPatternMatch()) {
                 call.respond(
@@ -105,10 +117,10 @@ fun Route.signinAuth(db: Database) {
             val user = db.from(Users).select()
                 .where { Users.email_id eq email }
                 .map {
-                    val id = it[Users.user_id]!!
+                    val id = it[Users.user_id]
                     val emailID = it[Users.email_id]!!
                     val password = it[Users.password]!!
-                    LoginDetailsModel(id, userName, emailID, password)
+                    LoginDetailsModel(id,emailID, password)
                 }.firstOrNull()
 
             if (user == null) {
@@ -126,10 +138,35 @@ fun Route.signinAuth(db: Database) {
                     )
                     return@post
                 } else {
-                    call.respond(
-                        HttpStatusCode.OK,
-                        ResponseData(true, message = "Validation Success", data = "Exception")
-                    )
+                    val token = tokenManager.generateJWTToken(user)
+                    val user_id = user.id ?: -1
+                    val update_r_insert_token = db.update(Users)
+                    {
+                        set(Users.token,token)
+                        where {
+                            it.user_id eq user_id
+                        }
+                    }
+
+                    if(update_r_insert_token == 1){
+                        val response = JsonObject(
+                            mapOf(
+                                "user_id" to JsonPrimitive(user.id),
+                                "email_id" to JsonPrimitive(user.email),
+                                "token" to JsonPrimitive(token),
+                            )
+                        )
+
+                        call.respond(
+                            HttpStatusCode.OK,
+                            ResponseData(true, message = "Validation Success", data = response)
+                        )
+                    }else{
+                        call.respond(
+                            HttpStatusCode.OK,
+                            ResponseData(false, message = "Token Not Inserted : $token", data = token)
+                        )
+                    }
                     return@post
                 }
             }

@@ -1,18 +1,18 @@
-package com.example.routing
+package com.example.routing.Route
 
 
 import com.example.route.signUpAuth
 import com.example.route.signinAuth
-import io.ktor.server.application.*
+import com.example.utils.TokenManager
 import io.ktor.server.routing.*
 import io.ktor.server.routing.Route
 import org.ktorm.database.Database
 
-fun Route.authenticationRouter(db:Database)
+fun Route.authenticationRouter(db: Database, tokenManager: TokenManager)
 {
         route("auth/"){
-            signinAuth(db)
-            signUpAuth(db)
+            signinAuth(db,tokenManager)
+            signUpAuth(db,tokenManager)
         }
 
 }

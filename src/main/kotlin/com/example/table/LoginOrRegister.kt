@@ -6,6 +6,6 @@ import org.ktorm.schema.varchar
 
 object LoginOrRegister:Table<Nothing>("userLogin") {
     val id = int("id").primaryKey()
-    val userName = varchar("userName")
+    val email = varchar("email")
     val password = varchar("password")
 }
