@@ -82,9 +82,7 @@ fun Route.signUpAuth(db: Database, tokenManager: TokenManager) {
 fun Route.  signinAuth(db: Database, tokenManager: TokenManager) {
 
     post("signinwithmobile"){
-
     }
-
 
     post("signin") {
 

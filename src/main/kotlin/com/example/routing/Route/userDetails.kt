@@ -14,6 +14,8 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import org.ktorm.database.Database
 import org.ktorm.dsl.*
+import java.io.File
+import java.util.*
 
 fun Route.userAccount(db: Database) {
     route("userAccount") {
@@ -21,35 +23,45 @@ fun Route.userAccount(db: Database) {
         post("uploadProfilePic"){
             try{
                 val multipart = call.receiveMultipart()
-                var fileName: String? = null
-                var fileBytes: ByteArray? = null
-
-                if(multipart != null){
-                    call.respond(HttpStatusCode.OK, ResponseData(true, message = multipart.toString(), data = ""))
-                    return@post
-
-                }else{
-                    call.respond(HttpStatusCode.OK, ResponseData(false, message = multipart.toString(), data = ""))
-                    return@post
-                }
-
-                multipart.forEachPart { part ->
-                    when (part) {
-                        is PartData.FormItem -> {
-                            // Handle form fields here
-                        }
+                var part: PartData.FileItem? = null
+                multipart.forEachPart { currentPart ->
+                    when (currentPart) {
                         is PartData.FileItem -> {
-                            fileName = part.originalFileName
-                            fileBytes = part.streamProvider().readBytes()
+                            // If the part is a file, store it in the 'part' variable
+                            part = currentPart
                         }
 
                         else -> {}
                     }
-                    part.dispose()
+                    // If we have found a file, exit the loop
+                    if (part != null) {
+                        return@forEachPart
+                    }
+                    // If the current part is not a file, discard it
+                    currentPart.dispose()
                 }
+                if (part == null) {
+                    // If no file was found in the request, return an error response
+                    call.respond(HttpStatusCode.OK, ResponseData(false, message = "File not found in request", data = ""))
 
+                } else {
+                    // Generate a unique file name
+                    val timestamp = System.currentTimeMillis()
+                    val randomString = UUID.randomUUID().toString()
+                    val fileName = "$timestamp-$randomString.jpg"
+                    // Do something with the file part
+                    // For example, save it to disk
+                    val file = File("/home/friday02/Ktor/uploadedImages/$fileName")
+                    part?.streamProvider?.let { it1 -> it1() }?.use { input ->
+                        file.outputStream().buffered().use {
+                            input.copyTo(it)
+                        }
+                    }
+                    // Return a success response
+                    call.respond(HttpStatusCode.OK, ResponseData(true, message = "File uploaded successfully", data = ""))
+                }
             }catch (e:Exception){
-                call.respond(HttpStatusCode.InternalServerError, ResponseData(false, message = "Internal server error", data = e.localizedMessage))
+                call.respond(HttpStatusCode.OK, ResponseData(false, message = "Internal server error", data = e.localizedMessage))
                 return@post
             }
         }
